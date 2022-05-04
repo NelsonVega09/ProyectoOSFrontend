@@ -69,7 +69,7 @@ function App() {
   const [phone, setPhone] = useState('')
   const [motive, setMotive] = useState('')
   const [date, setDate] = useState('')
-  const [sala, setSala] = useState('')
+  const [sala, setSala] = useState('chat')
   const [message, setMessage] = useState('')
 
   //MENU
@@ -115,6 +115,7 @@ function App() {
   }
   //ROOM(SALA)
   const handleOpenDialogSA = () => {
+    handleGetContacts()
     setPopupSA(true)
   }
   const handleOpenDialogSE = () => {
@@ -473,8 +474,21 @@ function App() {
               <MenuItem value="grupo">Group chat</MenuItem>
               <MenuItem value="chat">Direct chat</MenuItem>
             </Select>
-            <h3>Name</h3>
-            <TextField onChange={handleChangeName} />
+            {sala === "chat" ?
+              <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup">
+                <h3>Contacts</h3>
+                <Select onChange={handleChangeName}>
+                  {contacts.map((contact) => (
+                    <MenuItem value={contact.nombre}>{contact.nombre}</MenuItem>
+                  ))}
+                </Select>
+              </Stack>
+            :
+              <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup">
+                <h3>Name</h3>
+                <TextField onChange={handleChangeName} />
+              </Stack>
+            }
             <Button onClick={handleAddRoom}>Confirm</Button>
           </Stack>
         </Dialog>

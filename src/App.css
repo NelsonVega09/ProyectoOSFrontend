@@ -89,4 +89,5 @@ h3 {
 .popup{
   padding: 1vh;
   justify-items: center;
+  min-width: 25vw;
 }
