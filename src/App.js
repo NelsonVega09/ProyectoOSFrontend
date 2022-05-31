@@ -21,8 +21,11 @@ import SendIcon from '@mui/icons-material/Send';
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem';
 import AddReactionIcon from '@mui/icons-material/AddReaction';
-
 import axios from 'axios'
+import { wait } from '@testing-library/user-event/dist/utils';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CardActionArea from '@mui/material/CardActionArea';
+import Card from '@mui/material/Card'
 
 function App() {
   //INNER DATA
@@ -32,6 +35,8 @@ function App() {
   const [roomName, setRoomName] = useState("RoomName")
   const [contactId, setContactId] = useState(0)
   const [reminderId, setReminderId] = useState(0)
+  const [messageId, setMessageId] = useState(0)
+  const [menuPoint, setMenuPoint] = useState({ x: 0, y: 0 })
 
   //DISPLAY
   const [rooms, setRooms] = useState([])
@@ -39,9 +44,11 @@ function App() {
   const [reminders, setReminders] = useState([])
   const [contacts, setContacts] = useState([])
   const [alert, setAlert] = useState('')
+  const [preview, setPreview] = useState()
 
   //POPUPS
   const [menu, setMenu] = useState(null)
+  const [messageMenu, setMessageMenu] = useState(false)
 
   const [popupUL, setPopupUL] = useState(false) //name, phone
   const [popupUA, setPopupUA] = useState(false) //name, phone
@@ -64,6 +71,8 @@ function App() {
 
   const [popupM, setPopupM] = useState(false) //General use popup for success/failure alerts
 
+  const [popupP, setPopupP] = useState(false)
+
   //FORMS
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -71,6 +80,7 @@ function App() {
   const [date, setDate] = useState('')
   const [sala, setSala] = useState('chat')
   const [message, setMessage] = useState('')
+  const [file, setFile] = useState()
 
   //MENU
   const openMenu = (event) => {
@@ -80,6 +90,16 @@ function App() {
   const closeMenu = () => {
     setMenu(null)
   }
+
+  const openMessageMenu = (event) => {
+    setMenuPoint({ x: event.pageX, y: event.pageY })
+    setMessageMenu(true)
+  }
+
+  const closeMessageMenu = (event) => {
+    setMessageMenu(false)
+  }
+
   //OPEN POPUPS
   //USER
   const handleOpenDialogUL = () => {
@@ -97,7 +117,7 @@ function App() {
     setPopupCL(true)
   }
   const handleOpenDialogCA = () => {
-    setPopupUA(true)
+    setPopupCA(true)
   }
   const handleOpenDialogCE = () => {
     setPopupCE(true)
@@ -124,6 +144,9 @@ function App() {
   //ALERT
   const handleOpenDialogM = () => {
     setPopupM(true)
+  }
+  const handleOpenDialogP = () => {
+    setPopupP(true)
   }
 
   //CLOSE POPUPS
@@ -168,6 +191,9 @@ function App() {
   const handleCloseDialogM = () => {
     setPopupM(false)
   }
+  const handleCloseDialogP = () => {
+    setPopupP(false)
+  }
 
   //HANDLES FORM DATA
   const handleChangeName = (event) => {
@@ -194,13 +220,19 @@ function App() {
     setMessage(event.target.value)
   }
 
-  const handleGetMessages = (id) => {
-    axios.get("http://localhost:8080/mensaje/get/" + id.toString()).then((response) => {
+  const handleChangeFile = (event) => {
+    setFile(event.target.files[0])
+    setPreview(URL.createObjectURL(event.target.files[0]))
+  }
+
+  const handleGetMessages = () => {
+    axios.get("http://localhost:8080/mensaje/get/" + roomId.toString()).then((response) => {
+      wait()
       setMessages(response.data)
+      wait()
       setMessage('')
     })
   }
-
 
   const handleSignIn = () => {
     axios.get("http://localhost:8080/usuario/sign-in/" + name + "/" + phone).then((response) => {
@@ -209,13 +241,20 @@ function App() {
         setLogged(true)
         setUserId(data.id_usuario)
         handleGetRooms()
+        handleCloseDialogUL()
+      } else {
+        setAlert("Sign in failed. Check your info")
+        handleOpenDialogM()
       }
     })
   }
 
   const handleSignUp = () => {
     axios.post("http://localhost:8080/usuario/sign-up", { "nombre": name, "telefono": phone }).then((response) => {
-      console.log(response.data)
+      setAlert(response.data)
+      if (response.status === 200) {
+        handleCloseDialogUA()
+      }
     })
   }
 
@@ -233,7 +272,9 @@ function App() {
   }
 
   const handleAddReminder = () => {
-    axios.post("http://localhost:8080/recordatorio/create", { "id_usuario": userId, "motivo": motive, "fecha": date }).then((response) => {
+    const dateData = date.split('T')
+    const dateFormat = dateData[0] + " " + dateData[1] + ":00"
+    axios.post("http://localhost:8080/recordatorio/create", { "id_usuario": userId, "motivo": motive, "fecha": dateFormat }).then((response) => {
       setAlert(response.data)
       handleGetReminders()
       handleOpenDialogM()
@@ -256,7 +297,7 @@ function App() {
   }
 
   const handleAddContact = () => {
-    axios.post("http://localhost:8080/contacto/create", { "id_usuario": userId.toExponential, "nombre_contacto": name, "numero": phone }).then((response) => {
+    axios.post("http://localhost:8080/contacto/create", { "id_usuario": userId, "nombre_contacto": name, "numero": phone }).then((response) => {
       setAlert(response.data)
       handleGetContacts()
       handleOpenDialogM()
@@ -293,8 +334,14 @@ function App() {
     })
   }
 
-  const handleSendMessage = () => {
-    axios.post("http://localhost:8080/mensaje/send/mixed/" + userId.toString() + "/" + roomId.toString() + "/" + message).then((response) => {
+  const handleSendMessageNormal = () => {
+    axios.post("http://localhost:8080/mensaje/send/normal", { "id_usuario": userId, "id_sala": roomId, "nombre_msj": "normal", "texto": message }).then((response) => {
+      handleGetMessages()
+    })
+  }
+
+  const handleSendMessageMultimedia = () => {
+    axios.post("http://localhost:8080/mensaje/send/multimedia", { "id_usuario": userId, "id_sala": roomId, "nombre_msj": "normal", "texto": message }).then((response) => {
       handleGetMessages()
     })
   }
@@ -368,7 +415,10 @@ function App() {
             <h3>Motive</h3>
             <TextField onChange={handleChangeMotive} />
             <h3>Date</h3>
-            <TextField onChange={handleChangeDate} />
+            <TextField
+              type="datetime-local"
+              onChange={handleChangeDate}
+            />
             <Button onClick={handleAddReminder}>Confirm</Button>
           </Stack>
         </Dialog>
@@ -430,6 +480,7 @@ function App() {
             {contacts.map((contact) => (
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <h3>{contact.nombre}</h3>
+                <h3>....</h3>
                 <h3>{contact.telefono}</h3>
                 <Tooltip title="Modify contact">
                   <IconButton onClick={(e) => {
@@ -483,7 +534,7 @@ function App() {
                   ))}
                 </Select>
               </Stack>
-            :
+              :
               <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup">
                 <h3>Name</h3>
                 <TextField onChange={handleChangeName} />
@@ -508,6 +559,31 @@ function App() {
           </Stack>
         </Dialog>
 
+        <Dialog onClose={handleCloseDialogP} open={popupP}>
+          <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup">
+            <DialogTitle>File upload</DialogTitle>
+            {file ?
+              file.type.includes('image') ?
+                <img src={preview} width="400" />
+                :
+                <h3>{file.name}</h3>
+              :
+              <h3>You can preview your file here</h3>}
+            <Button
+              variant="contained"
+              component="label"
+            >
+              Upload File
+              <input
+                type="file"
+                hidden
+                onChange={handleChangeFile}
+              />
+            </Button>
+            <Button onClick={handleSendMessageMultimedia}>Confirm</Button>
+          </Stack>
+        </Dialog>
+
         <Stack direction="horizontal" divider={<Divider orientation="vertical" flexItem />} className="chats">
           <Stack divider={<Divider orientation="horizontal" flexItem />} className="rooms">
             <Grid container direction="row" justifyContent="space-between" alignItems="center">
@@ -522,8 +598,9 @@ function App() {
               <Stack direction="row" justifyContent="flex-start" alignItems="center">
                 <Tooltip title="Open room">
                   <IconButton onClick={(e) => {
+                    setMessages([])
                     setRoomId(room.id_sala)
-                    handleGetMessages(room.id_sala)
+                    handleGetMessages()
                     setRoomName(room.nombre)
                   }}>
                     <AccountCircleIcon />
@@ -533,6 +610,8 @@ function App() {
                 <Tooltip title="Edit room">
                   <IconButton onClick={(e) => {
                     setRoomId(room.id_sala)
+                    setMessages([])
+                    handleGetMessages()
                     handleOpenDialogSE()
                   }}>
                     <EditIcon />
@@ -541,26 +620,46 @@ function App() {
               </Stack>
             ))}
           </Stack>
-          <Stack divider={<Divider orientation="horizontal" flexItem />} className="messages">
-            <h2 className="messagesTitle">{roomName}</h2>
+          <Stack divider={<Divider orientation="horizontal" flexItem />} className="messages" justifyContent="center" direction="column" alignItems="center">
+            <Stack className="messagesTitle" justifyContent="center" direction="row" alignItems="center">
+              <h3>{roomName} ({roomId})</h3>
+            </Stack>
             <Stack spacing={1} className="roomMessages">
               {messages.map((message) => (
-                <Grid container direction="column" justifyContent="center" alignItems={message.id_usuario_msj.id_usuario === userId ? "flex-start" : "flex-end"} className="message">
-                  <Paper variant="outlined" className={message.id_usuario_msj.id_usuario === userId ? "messageOut" : "messageIn"}>
-                    <h3>{message.texto}</h3>
-                  </Paper>
+                <Grid container direction="column" justifyContent="center" alignItems={message.id_usuario_msj.id_usuario === userId ? "flex-end" : "flex-start"} className="message">
+                  <Card variant="outlined" className={message.id_usuario_msj.id_usuario === userId ? "messageOut" : "messageIn"}>
+                    <CardActionArea onClick={openMessageMenu}>
+                      {message.id_tipo_msj.nombre === "normal" ? <h3>{message.texto}</h3> : <h3>[multimedia]</h3>}
+                    </CardActionArea>
+                  </Card>
                 </Grid>
               ))}
+              {messageMenu ?
+                <Stack direction="row" justifyContent="center" alignItems="center" spacing={1}>
+                  <Tooltip title="Edit message">
+                    <IconButton>
+                      <EditIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete message">
+                    <IconButton>
+                      <DeleteIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+                :
+                <div></div>
+              }
             </Stack>
             <Grid container direction="row" justifyContent="space-between" alignItems="center" className="roomSendBar">
               <Tooltip title="Add image">
-                <IconButton>
+                <IconButton onClick={handleOpenDialogP}>
                   <AddPhotoAlternateIcon />
                 </IconButton>
               </Tooltip>
               <TextField variant="outlined" className="TextField" size="small" onChange={handleChangeMessage} />
               <Tooltip title="Send message">
-                <IconButton onClick={handleSendMessage}>
+                <IconButton onClick={handleSendMessageNormal}>
                   <SendIcon />
                 </IconButton>
               </Tooltip>
