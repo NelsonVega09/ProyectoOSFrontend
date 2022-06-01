@@ -26,6 +26,11 @@ import { wait } from '@testing-library/user-event/dist/utils';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CardActionArea from '@mui/material/CardActionArea';
 import Card from '@mui/material/Card'
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
+import BlockIcon from '@mui/icons-material/Block';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import CheckIcon from '@mui/icons-material/Check';
 
 function App() {
   //INNER DATA
@@ -36,7 +41,12 @@ function App() {
   const [contactId, setContactId] = useState(0)
   const [reminderId, setReminderId] = useState(0)
   const [messageId, setMessageId] = useState(0)
-  const [menuPoint, setMenuPoint] = useState({ x: 0, y: 0 })
+  const [search, setSearch] = useState('')
+  const [lat, setLat] = useState([]);
+  const [long, setLong] = useState([]);
+  const [weather, setWeather] = useState(null)
+  const [dateC, setDateC] = useState('')
+  const [time, setTime] = useState('')
 
   //DISPLAY
   const [rooms, setRooms] = useState([])
@@ -48,7 +58,9 @@ function App() {
 
   //POPUPS
   const [menu, setMenu] = useState(null)
-  const [messageMenu, setMessageMenu] = useState(false)
+  const [messageMenu, setMessageMenu] = useState(null)
+  const [searchBar, setSearchBar] = useState(false)
+  const [editMenu, setEditMenu] = useState(false)
 
   const [popupUL, setPopupUL] = useState(false) //name, phone
   const [popupUA, setPopupUA] = useState(false) //name, phone
@@ -57,6 +69,9 @@ function App() {
   const [popupCL, setPopupCL] = useState(false) //userId
   const [popupCA, setPopupCA] = useState(false) //userId, name, phone
   const [popupCE, setPopupCE] = useState(false) //contId, name, phone
+
+  const [popupCB, setPopupCB] = useState(false) //userId, contactId
+  const [popupCU, setPopupCU] = useState(false) //userId, contactId
 
   const [popupRL, setPopupRL] = useState(false) //userId
   const [popupRA, setPopupRA] = useState(false) //userId, motive, date
@@ -72,6 +87,8 @@ function App() {
   const [popupM, setPopupM] = useState(false) //General use popup for success/failure alerts
 
   const [popupP, setPopupP] = useState(false)
+
+  const [popupW, setPopupW] = useState(false)
 
   //FORMS
   const [name, setName] = useState('')
@@ -92,12 +109,34 @@ function App() {
   }
 
   const openMessageMenu = (event) => {
-    setMenuPoint({ x: event.pageX, y: event.pageY })
-    setMessageMenu(true)
+    setMessageMenu(event.currentTarget)
   }
 
   const closeMessageMenu = (event) => {
-    setMessageMenu(false)
+    setEditMenu(false)
+    setMessageMenu(null)
+  }
+
+  const handleOpenSearchBar = (event) => {
+    setSearchBar(true)
+  }
+
+  const handleCloseSearchBar = (event) => {
+    setSearchBar(false)
+  }
+
+  const handleCheckEnter = (event) => {
+    if (event.keyCode == 13) {
+      handleSearchMessages()
+    }
+  }
+
+  const openEditMenu = () => {
+    setEditMenu(true);
+  }
+
+  const closeEditMenu = () => {
+    setEditMenu(false)
   }
 
   //OPEN POPUPS
@@ -121,6 +160,12 @@ function App() {
   }
   const handleOpenDialogCE = () => {
     setPopupCE(true)
+  }
+  const handleOpenDialogCB = () => {
+    setPopupCB(true)
+  }
+  const handleOpenDialogCU = () => {
+    setPopupCU(true)
   }
   //REMINDER
   const handleOpenDialogRL = () => {
@@ -148,6 +193,9 @@ function App() {
   const handleOpenDialogP = () => {
     setPopupP(true)
   }
+  const handleOpenDialogW = () => {
+    setPopupW(true)
+  }
 
   //CLOSE POPUPS
   //USER
@@ -169,6 +217,12 @@ function App() {
   }
   const handleCloseDialogCE = () => {
     setPopupCE(false)
+  }
+  const handleCloseDialogCB = () => {
+    setPopupCB(false)
+  }
+  const handleCloseDialogCU = () => {
+    setPopupCU(false)
   }
   //REMINDER
   const handleCloseDialogRL = () => {
@@ -193,6 +247,9 @@ function App() {
   }
   const handleCloseDialogP = () => {
     setPopupP(false)
+  }
+  const handleCloseDialogW = () => {
+    setPopupW(false)
   }
 
   //HANDLES FORM DATA
@@ -225,12 +282,70 @@ function App() {
     setPreview(URL.createObjectURL(event.target.files[0]))
   }
 
+  const handleChangeSearch = (event) => {
+    setSearch(event.target.value)
+  }
+
+  const getLocation = () => {
+    navigator.geolocation.getCurrentPosition(function (position) {
+      setLat(position.coords.latitude);
+      setLong(position.coords.longitude);
+    });
+  }
+
+  const getWeather = () => {
+    axios.get("https://api.openweathermap.org/data/2.5/weather/?lat=" + lat.toString() + "&lon=" + long.toString() + "&units=metric&APPID=b7004eeb1d2c1d4a8ea3a0d51ded4fd3").then((response) => {
+      setWeather(response.data)
+    })
+  }
+
+  const handleShowWeather = () => {
+    const current = new Date()
+    setDateC(current.toDateString())
+    setTime(current.toTimeString().split('G')[0])
+    getLocation()
+    getWeather()
+    wait()
+    setPopupW(true)
+  }
+
   const handleGetMessages = () => {
     axios.get("http://localhost:8080/mensaje/get/" + roomId.toString()).then((response) => {
+      setMessages([])
       wait()
       setMessages(response.data)
       wait()
       setMessage('')
+    })
+  }
+
+  const handleSearchMessages = () => {
+    axios.get("http://localhost:8080/mensaje/get/" + search + "/" + roomId.toString()).then((response) => {
+      setMessages([])
+      wait()
+      setMessages(response.data)
+      wait()
+      setMessage('')
+    })
+  }
+
+  const handleEditMessage = () => {
+    axios.put("http://localhost:8080/mensaje/modify", { "id_mensaje": messageId, "texto": message }).then((response) => {
+      if(search === ''){
+        handleGetMessages()
+      }else{
+        handleSearchMessages()
+      }
+    })
+  }
+
+  const handleDeleteMessage = () => {
+    axios.put("http://localhost:8080/mensaje/delete/" + messageId.toString()).then((response)=> {
+      if(search === ''){
+        handleGetMessages()
+      }else{
+        handleSearchMessages()
+      }
     })
   }
 
@@ -283,7 +398,9 @@ function App() {
   }
 
   const handleEditReminder = () => {
-    axios.put("http://localhost:8080/recordatorio/modify", { "id_recordatorio": reminderId, "motivo": motive, "fecha": date }).then((response) => {
+    const dateData = date.split('T')
+    const dateFormat = dateData[0] + " " + dateData[1] + ":00"
+    axios.put("http://localhost:8080/recordatorio/modify", { "id_recordatorio": reminderId, "motivo": motive, "fecha": dateFormat }).then((response) => {
       setAlert(response.data)
       handleGetReminders()
       handleOpenDialogM()
@@ -306,6 +423,22 @@ function App() {
 
   const handleEditContact = () => {
     axios.put("http://localhost:8080/contacto/modify", { "id_contacto": contactId, "nombre_contacto": name, "numero_contacto": phone }).then((response) => {
+      setAlert(response.data)
+      handleGetContacts()
+      handleOpenDialogM()
+    })
+  }
+
+  const handleBlockContact = () => {
+    axios.put("http://localhost:8080/contacto/lock/" + userId.toString() + "/" + contactId.toString()).then((response) => {
+      setAlert(response.data)
+      handleGetContacts()
+      handleOpenDialogM()
+    })
+  }
+
+  const handleUnblockContact = () => {
+    axios.put("http://localhost:8080/contacto/unlock/" + userId.toString() + "/" + contactId.toString()).then((response) => {
       setAlert(response.data)
       handleGetContacts()
       handleOpenDialogM()
@@ -370,7 +503,9 @@ function App() {
                 <Button onClick={handleOpenDialogRL}>Reminders</Button>
                 <Button onClick={handleOpenDialogCL}>Contacts</Button>
                 <Button onClick={handleOpenDialogUE}>Edit profile</Button>
+                <Button onClick={handleShowWeather}>Weather</Button>
                 <Button onClick={handleSignOut}>Sign out</Button>
+
               </Stack>
               :
               <Stack direction="column" justifyContent="center" alignItems="center" divider={<Divider orientation="vertical" flexItem />}>
@@ -389,7 +524,7 @@ function App() {
               <DialogTitle>Reminders</DialogTitle>
               <Tooltip title="Add reminder">
                 <IconButton onClick={handleOpenDialogRA}>
-                  <AddAlertIcon />
+                  <AddAlertIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             </Stack>
@@ -401,7 +536,7 @@ function App() {
                     setReminderId(reminder.id_recordatorio)
                     handleOpenDialogRE()
                   }}>
-                    <EditNotificationsIcon />
+                    <EditNotificationsIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               </Stack>
@@ -429,7 +564,10 @@ function App() {
             <h3>Motive</h3>
             <TextField onChange={handleChangeMotive} />
             <h3>Date</h3>
-            <TextField onChange={handleChangeDate} />
+            <TextField
+              type="datetime-local"
+              onChange={handleChangeDate}
+            />
             <Button onClick={handleEditReminder}>Confirm</Button>
           </Stack>
         </Dialog>
@@ -473,7 +611,7 @@ function App() {
               <DialogTitle>Contacts</DialogTitle>
               <Tooltip title="Add reminder">
                 <IconButton onClick={handleOpenDialogCA}>
-                  <AddReactionIcon />
+                  <AddReactionIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             </Stack>
@@ -487,7 +625,23 @@ function App() {
                     setContactId(contact.id_usuario)
                     handleOpenDialogCE()
                   }}>
-                    <EditIcon />
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Block contact">
+                  <IconButton onClick={(e) => {
+                    setContactId(contact.id_usuario)
+                    handleOpenDialogCB()
+                  }}>
+                    <BlockIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Unblock contact">
+                  <IconButton onClick={(e) => {
+                    setContactId(contact.id_usuario)
+                    handleOpenDialogCU()
+                  }}>
+                    <LockOpenIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               </Stack>
@@ -514,6 +668,26 @@ function App() {
             <h3>Number</h3>
             <TextField onChange={handleChangePhone} />
             <Button onClick={handleEditContact}>Confirm</Button>
+          </Stack>
+        </Dialog>
+
+        <Dialog onClose={handleCloseDialogCB} open={popupCB}>
+          <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup">
+            <DialogTitle>Are you sure want to block this contact?</DialogTitle>
+            <Stack direction="row" justifyContent="center" alignItems="center" spacing={5} className="popup">
+              <Button onClick={handleBlockContact}>Confirm</Button>
+              <Button onClick={handleCloseDialogCB}>Cancel</Button>
+            </Stack>
+          </Stack>
+        </Dialog>
+
+        <Dialog onClose={handleCloseDialogCU} open={popupCU}>
+          <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup">
+            <DialogTitle>Are you sure want to unblock this contact?</DialogTitle>
+            <Stack direction="row" justifyContent="center" alignItems="center" spacing={5} className="popup">
+              <Button onClick={handleUnblockContact}>Confirm</Button>
+              <Button onClick={handleCloseDialogCU}>Cancel</Button>
+            </Stack>
           </Stack>
         </Dialog>
 
@@ -584,13 +758,67 @@ function App() {
           </Stack>
         </Dialog>
 
+        <Dialog onClose={handleCloseDialogW} open={popupW}>
+          {weather != null ?
+            <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup">
+              <DialogTitle>Weather</DialogTitle>
+              <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} className="popup">
+                <h1>Date: {dateC}</h1>
+                <h1>Time: {time}</h1>
+              </Stack>
+              <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} className="popup">
+                <h1>Location: {weather.name}</h1>
+                <h1>Weather: {weather.weather[0].description}</h1>
+              </Stack>
+              <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} className="popup">
+                <h1>Temperature: {weather.main.temp}°C</h1>
+                <h1>Sensation: {weather.main.feels_like}°C</h1>
+              </Stack>
+              <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} className="popup">
+                <h1>Temp. Max.: {weather.main.temp_max}°C</h1>
+                <h1>Temp. Min: {weather.main.temp_min}°C</h1>
+              </Stack>
+              <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} className="popup">
+                <h1>Humidity: {weather.main.humidity}%</h1>
+                <h1>Wind speed: {weather.wind.speed}Km/H</h1>
+              </Stack>
+            </Stack>
+            :
+            null}
+        </Dialog>
+
         <Stack direction="horizontal" divider={<Divider orientation="vertical" flexItem />} className="chats">
+          <Menu anchorEl={messageMenu} keepMounted open={Boolean(messageMenu)} onClose={closeMessageMenu}>
+            {editMenu ?
+              <Stack direction="horizontal">
+                <TextField size="small" onChange={handleChangeMessage} />
+                <Tooltip title="Confirm edit">
+                  <IconButton onClick={handleEditMessage}>
+                    <CheckIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+              :
+              <Stack direction="horizontal" className="chats">
+                <Tooltip title="Edit message">
+                  <IconButton onClick={openEditMenu}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete message">
+                  <IconButton onClick={handleDeleteMessage}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            }
+          </Menu>
           <Stack divider={<Divider orientation="horizontal" flexItem />} className="rooms">
             <Grid container direction="row" justifyContent="space-between" alignItems="center">
               <h2>Rooms</h2>
               <Tooltip title="Create new room">
                 <IconButton onClick={handleOpenDialogSA}>
-                  <AddCommentIcon />
+                  <AddCommentIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             </Grid>
@@ -603,7 +831,7 @@ function App() {
                     handleGetMessages()
                     setRoomName(room.nombre)
                   }}>
-                    <AccountCircleIcon />
+                    <AccountCircleIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
                 <h3>{room.nombre}</h3>
@@ -614,7 +842,7 @@ function App() {
                     handleGetMessages()
                     handleOpenDialogSE()
                   }}>
-                    <EditIcon />
+                    <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               </Stack>
@@ -622,52 +850,56 @@ function App() {
           </Stack>
           <Stack divider={<Divider orientation="horizontal" flexItem />} className="messages" justifyContent="center" direction="column" alignItems="center">
             <Stack className="messagesTitle" justifyContent="center" direction="row" alignItems="center">
-              <h3>{roomName} ({roomId})</h3>
+              <Stack className="roomInfo" justifyContent="center" direction="row" alignItems="center">
+                <h3>{roomName} ({roomId})</h3>
+              </Stack>
+              <Stack className="searchBar" justifyContent="center" direction="row" alignItems="center">
+                {searchBar ?
+                  <Stack direction="row" justifyContent="center" alignItems="center">
+                    <TextField onChange={handleChangeSearch} onKeyDown={handleCheckEnter} size="small" variant="outlined" />
+                    <Tooltip title="Close search bar">
+                      <IconButton onClick={handleCloseSearchBar}>
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                  :
+                  <Tooltip title="Open search bar">
+                    <IconButton onClick={handleOpenSearchBar}>
+                      <SearchIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                }
+              </Stack>
             </Stack>
             <Stack spacing={1} className="roomMessages">
               {messages.map((message) => (
                 <Grid container direction="column" justifyContent="center" alignItems={message.id_usuario_msj.id_usuario === userId ? "flex-end" : "flex-start"} className="message">
                   <Card variant="outlined" className={message.id_usuario_msj.id_usuario === userId ? "messageOut" : "messageIn"}>
-                    <CardActionArea onClick={openMessageMenu}>
-                      {message.id_tipo_msj.nombre === "normal" ? <h3>{message.texto}</h3> : <h3>[multimedia]</h3>}
+                    <CardActionArea onClick={(event) => { openMessageMenu(event); setMessageId(message.id_mensaje) }}>
+                      {message.id_tipo_msj.nombre === "normal" ? <h3>{message.texto}</h3> : <h3>[multimedia]</h3>}{message.fecha}
                     </CardActionArea>
                   </Card>
                 </Grid>
               ))}
-              {messageMenu ?
-                <Stack direction="row" justifyContent="center" alignItems="center" spacing={1}>
-                  <Tooltip title="Edit message">
-                    <IconButton>
-                      <EditIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete message">
-                    <IconButton>
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-                :
-                <div></div>
-              }
             </Stack>
             <Grid container direction="row" justifyContent="space-between" alignItems="center" className="roomSendBar">
               <Tooltip title="Add image">
                 <IconButton onClick={handleOpenDialogP}>
-                  <AddPhotoAlternateIcon />
+                  <AddPhotoAlternateIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
               <TextField variant="outlined" className="TextField" size="small" onChange={handleChangeMessage} />
               <Tooltip title="Send message">
                 <IconButton onClick={handleSendMessageNormal}>
-                  <SendIcon />
+                  <SendIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             </Grid>
           </Stack>
         </Stack>
       </body>
-    </div>
+    </div >
   );
 }
 

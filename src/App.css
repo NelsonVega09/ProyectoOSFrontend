@@ -44,6 +44,16 @@ h3 {
   height: 5%;
 }
 
+.roomInfo {
+  width: 75%;
+  height: 100%;
+}
+
+.searchBar {
+  width: 25%;
+  height: 100%;
+}
+
 .messages {
   background-color: white;
   width: 85%;
@@ -61,8 +71,8 @@ h3 {
 }
 
 .message {
-  width: 90%;
-  height: 10%;
+  width: fit-content;
+  height: fit-content;
   padding: 1vw;
 }
 
@@ -90,4 +100,8 @@ h3 {
   padding: 1vh;
   justify-items: center;
   min-width: 25vw;
+}
+
+Stack{
+  padding: 1vw;
 }
