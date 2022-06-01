@@ -102,6 +102,7 @@ h3 {
   min-width: 25vw;
 }
 
-Stack{
-  padding: 1vw;
+.infoRow {
+  width: 100%;
+  height: fit-content;
 }

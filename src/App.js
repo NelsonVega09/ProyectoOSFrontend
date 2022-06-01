@@ -1,5 +1,4 @@
 import './App.css';
-import Paper from '@mui/material/Paper'
 import Grid from "@mui/material/Grid"
 import Button from '@mui/material/Button'
 import Tooltip from '@mui/material/Tooltip';
@@ -76,6 +75,7 @@ function App() {
   const [popupRL, setPopupRL] = useState(false) //userId
   const [popupRA, setPopupRA] = useState(false) //userId, motive, date
   const [popupRE, setPopupRE] = useState(false) //remindId, motive, date
+  const [popupRD, setPopupRD] = useState(false) //remindId
 
   //get salas : userId
   const [popupSA, setPopupSA] = useState(false) //roomT, name, userId, date
@@ -112,21 +112,21 @@ function App() {
     setMessageMenu(event.currentTarget)
   }
 
-  const closeMessageMenu = (event) => {
-    setEditMenu(false)
+  const closeMessageMenu = () => {
+    closeEditMenu()
     setMessageMenu(null)
   }
 
-  const handleOpenSearchBar = (event) => {
+  const handleOpenSearchBar = () => {
     setSearchBar(true)
   }
 
-  const handleCloseSearchBar = (event) => {
+  const handleCloseSearchBar = () => {
     setSearchBar(false)
   }
 
   const handleCheckEnter = (event) => {
-    if (event.keyCode == 13) {
+    if (event.keyCode === 13) {
       handleSearchMessages()
     }
   }
@@ -177,6 +177,9 @@ function App() {
   }
   const handleOpenDialogRE = () => {
     setPopupRE(true)
+  }
+  const handleOpenDialogRD = () => {
+    setPopupRD(true)
   }
   //ROOM(SALA)
   const handleOpenDialogSA = () => {
@@ -233,6 +236,9 @@ function App() {
   }
   const handleCloseDialogRE = () => {
     setPopupRE(false)
+  }
+  const handleCloseDialogRD = () => {
+    setPopupRD(false)
   }
   //ROOM(SALA)
   const handleCloseDialogSA = () => {
@@ -306,15 +312,14 @@ function App() {
     getLocation()
     getWeather()
     wait()
-    setPopupW(true)
+    handleOpenDialogW()
   }
 
   const handleGetMessages = () => {
     axios.get("http://localhost:8080/mensaje/get/" + roomId.toString()).then((response) => {
       setMessages([])
-      wait()
       setMessages(response.data)
-      wait()
+      wait(5000)
       setMessage('')
     })
   }
@@ -322,29 +327,34 @@ function App() {
   const handleSearchMessages = () => {
     axios.get("http://localhost:8080/mensaje/get/" + search + "/" + roomId.toString()).then((response) => {
       setMessages([])
-      wait()
       setMessages(response.data)
-      wait()
+      wait(5000)
       setMessage('')
     })
   }
 
   const handleEditMessage = () => {
     axios.put("http://localhost:8080/mensaje/modify", { "id_mensaje": messageId, "texto": message }).then((response) => {
-      if(search === ''){
+      if (search === '') {
         handleGetMessages()
-      }else{
+      } else {
         handleSearchMessages()
+      }
+      if (response.status === 200) {
+        closeMessageMenu()
       }
     })
   }
 
   const handleDeleteMessage = () => {
-    axios.put("http://localhost:8080/mensaje/delete/" + messageId.toString()).then((response)=> {
-      if(search === ''){
+    axios.put("http://localhost:8080/mensaje/delete/" + messageId.toString()).then((response) => {
+      if (search === '') {
         handleGetMessages()
-      }else{
+      } else {
         handleSearchMessages()
+      }
+      if (response.status === 200) {
+        closeMessageMenu()
       }
     })
   }
@@ -357,6 +367,7 @@ function App() {
         setUserId(data.id_usuario)
         handleGetRooms()
         handleCloseDialogUL()
+        closeMenu()
       } else {
         setAlert("Sign in failed. Check your info")
         handleOpenDialogM()
@@ -369,6 +380,7 @@ function App() {
       setAlert(response.data)
       if (response.status === 200) {
         handleCloseDialogUA()
+        closeMenu()
       }
     })
   }
@@ -377,6 +389,9 @@ function App() {
     axios.put("http://localhost:8080/usuario/modify", { "id_usuario": userId, "nombre": name, "telefono": phone }).then((response) => {
       setAlert(response.data)
       handleOpenDialogM()
+      if (response.status === 200) {
+        handleCloseDialogUE()
+      }
     })
   }
 
@@ -393,7 +408,9 @@ function App() {
       setAlert(response.data)
       handleGetReminders()
       handleOpenDialogM()
-
+      if (response.status === 200) {
+        handleCloseDialogRA()
+      }
     })
   }
 
@@ -404,6 +421,20 @@ function App() {
       setAlert(response.data)
       handleGetReminders()
       handleOpenDialogM()
+      if (response.status === 200) {
+        handleCloseDialogRE()
+      }
+    })
+  }
+
+  const handleDeleteReminder = () => {
+    axios.put("http://localhost:8080/recordatorio/delete/" + reminderId.toString()).then((response) => {
+      setAlert(response.data)
+      handleGetReminders()
+      handleOpenDialogM()
+      if (response.status === 200) {
+        handleCloseDialogRD()
+      }
     })
   }
 
@@ -418,6 +449,9 @@ function App() {
       setAlert(response.data)
       handleGetContacts()
       handleOpenDialogM()
+      if (response.status === 200) {
+        handleCloseDialogCA()
+      }
     })
   }
 
@@ -426,6 +460,9 @@ function App() {
       setAlert(response.data)
       handleGetContacts()
       handleOpenDialogM()
+      if (response.status === 200) {
+        handleCloseDialogCE()
+      }
     })
   }
 
@@ -434,6 +471,9 @@ function App() {
       setAlert(response.data)
       handleGetContacts()
       handleOpenDialogM()
+      if (response.status === 200) {
+        handleCloseDialogCB()
+      }
     })
   }
 
@@ -442,11 +482,17 @@ function App() {
       setAlert(response.data)
       handleGetContacts()
       handleOpenDialogM()
+      if (response.status === 200) {
+        handleCloseDialogCU()
+      }
     })
   }
 
   const handleGetRooms = () => {
     axios.get("http://localhost:8080/sala/get/" + userId.toString()).then((response) => {
+      wait(5000)
+      setRooms([])
+      wait(5000)
       setRooms(response.data)
     })
   }
@@ -456,6 +502,9 @@ function App() {
       setAlert(response.data)
       handleGetRooms()
       handleOpenDialogM()
+      if (response.status === 200) {
+        handleCloseDialogSA()
+      }
     })
   }
 
@@ -464,6 +513,9 @@ function App() {
       setAlert(response.data)
       handleGetRooms()
       handleOpenDialogM()
+      if (response.status === 200) {
+        handleCloseDialogSE()
+      }
     })
   }
 
@@ -474,9 +526,25 @@ function App() {
   }
 
   const handleSendMessageMultimedia = () => {
-    axios.post("http://localhost:8080/mensaje/send/multimedia", { "id_usuario": userId, "id_sala": roomId, "nombre_msj": "normal", "texto": message }).then((response) => {
-      handleGetMessages()
+    const infoJSON = {
+      "id_usuario": userId.toString(),
+      "id_sala": roomId.toString(),
+      "nombre_msj": "multimedia",
+      "texto": message
+    }
+    var formData = new FormData()
+    formData.append("payload", infoJSON)
+    formData.append("file", file)
+    axios({
+      method: "post",
+      url: "http://localhost:8080/mensaje/send/multimedia",
+      data: formData,
+      headers: { "Content-Type": "multipart/form-data" },
     })
+      .then((response) => {
+        //handle success
+        console.log(response);
+      })
   }
 
   const handleSignOut = () => {
@@ -519,7 +587,7 @@ function App() {
       <body className="body">
 
         <Dialog onClose={handleCloseDialogRL} open={popupRL}>
-          <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup">
+          <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup" divider={<Divider orientation="vertical" flexItem />}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <DialogTitle>Reminders</DialogTitle>
               <Tooltip title="Add reminder">
@@ -529,16 +597,29 @@ function App() {
               </Tooltip>
             </Stack>
             {reminders.map((reminder) => (
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <h3>{reminder.motivo}</h3>
-                <Tooltip title="Modify reminder">
-                  <IconButton onClick={(e) => {
-                    setReminderId(reminder.id_recordatorio)
-                    handleOpenDialogRE()
-                  }}>
-                    <EditNotificationsIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={0} className="infoRow">
+                <Stack direction="column" justifyContent="space-between" alignItems="flex-start">
+                  <h3>{reminder.motivo}</h3>
+                  <h3>{reminder.fecha}</h3>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Tooltip title="Modify reminder">
+                    <IconButton onClick={(e) => {
+                      setReminderId(reminder.id_recordatorio)
+                      handleOpenDialogRE()
+                    }}>
+                      <EditNotificationsIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Modify reminder">
+                    <IconButton onClick={(e) => {
+                      setReminderId(reminder.id_recordatorio)
+                      handleOpenDialogRD()
+                    }}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
               </Stack>
             ))}
           </Stack>
@@ -555,6 +636,16 @@ function App() {
               onChange={handleChangeDate}
             />
             <Button onClick={handleAddReminder}>Confirm</Button>
+          </Stack>
+        </Dialog>
+
+        <Dialog onClose={handleCloseDialogRD} open={popupRD}>
+          <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup">
+            <DialogTitle>Are you sure want to delete this reminder?</DialogTitle>
+            <Stack direction="row" justifyContent="center" alignItems="center" spacing={5} className="popup">
+              <Button onClick={handleDeleteReminder}>Confirm</Button>
+              <Button onClick={handleCloseDialogRD}>Cancel</Button>
+            </Stack>
           </Stack>
         </Dialog>
 
@@ -606,7 +697,7 @@ function App() {
         </Dialog>
 
         <Dialog onClose={handleCloseDialogCL} open={popupCL}>
-          <Stack direction="column" justifyContent="center" alignItems="center" spacing={1} className="popup">
+          <Stack direction="column" justifyContent="space-between" alignItems="center" spacing={1} className="popup">
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <DialogTitle>Contacts</DialogTitle>
               <Tooltip title="Add reminder">
@@ -616,34 +707,37 @@ function App() {
               </Tooltip>
             </Stack>
             {contacts.map((contact) => (
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <h3>{contact.nombre}</h3>
-                <h3>....</h3>
-                <h3>{contact.telefono}</h3>
-                <Tooltip title="Modify contact">
-                  <IconButton onClick={(e) => {
-                    setContactId(contact.id_usuario)
-                    handleOpenDialogCE()
-                  }}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Block contact">
-                  <IconButton onClick={(e) => {
-                    setContactId(contact.id_usuario)
-                    handleOpenDialogCB()
-                  }}>
-                    <BlockIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Unblock contact">
-                  <IconButton onClick={(e) => {
-                    setContactId(contact.id_usuario)
-                    handleOpenDialogCU()
-                  }}>
-                    <LockOpenIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" className="infoRow">
+                <Stack direction="column" justifyContent="center" alignItems="flex-start">
+                  <h3>{contact.nombre}</h3>
+                  <h3>{contact.telefono}</h3>
+                </Stack>
+                <Stack direction="row" justifyContent="center" alignItems="flex-end">
+                  <Tooltip title="Modify contact">
+                    <IconButton onClick={(e) => {
+                      setContactId(contact.id_usuario)
+                      handleOpenDialogCE()
+                    }}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Block contact">
+                    <IconButton onClick={(e) => {
+                      setContactId(contact.id_usuario)
+                      handleOpenDialogCB()
+                    }}>
+                      <BlockIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Unblock contact">
+                    <IconButton onClick={(e) => {
+                      setContactId(contact.id_usuario)
+                      handleOpenDialogCU()
+                    }}>
+                      <LockOpenIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
               </Stack>
             ))}
           </Stack>
@@ -738,7 +832,7 @@ function App() {
             <DialogTitle>File upload</DialogTitle>
             {file ?
               file.type.includes('image') ?
-                <img src={preview} width="400" />
+                <img src={preview} width="400" alt="imagepreview" />
                 :
                 <h3>{file.name}</h3>
               :
@@ -877,7 +971,16 @@ function App() {
                 <Grid container direction="column" justifyContent="center" alignItems={message.id_usuario_msj.id_usuario === userId ? "flex-end" : "flex-start"} className="message">
                   <Card variant="outlined" className={message.id_usuario_msj.id_usuario === userId ? "messageOut" : "messageIn"}>
                     <CardActionArea onClick={(event) => { openMessageMenu(event); setMessageId(message.id_mensaje) }}>
-                      {message.id_tipo_msj.nombre === "normal" ? <h3>{message.texto}</h3> : <h3>[multimedia]</h3>}{message.fecha}
+                      {message.id_tipo_msj.nombre === "normal" ?
+                        <h3>{message.texto}</h3>
+                        :
+                        /*message.archivo.type.contains('image') ?
+                          <img src={URL.createObjectURL(message.file)} width="200" alt="imagepreview" />
+                          :
+                          <h3>{message.name}</h3>*/
+                        <h3>[mensaje multimedia]</h3>
+                      }
+                      {message.fecha}
                     </CardActionArea>
                   </Card>
                 </Grid>
